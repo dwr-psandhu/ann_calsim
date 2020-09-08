@@ -1,0 +1,8 @@
+*.ds[sdkc]
+*.csv
+*.doc*
+*.h5
+tf_training_logs/
+__pycache__/
+.ipynb_checkpoints/
+.vscode/
