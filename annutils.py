@@ -30,7 +30,7 @@ def create_antecedent_inputs(df,ndays=8,window_size=11,nwindows=10):
 
     '''
     arr1=[df.shift(n) for n in range(ndays)]
-    dfr=df.rolling(str(window_size)+'D').mean()
+    dfr=df.rolling(str(window_size)+'D',min_periods=window_size).mean()
     arr2=[dfr.shift(periods=(window_size*n+ndays),freq='D') for n in range(nwindows)]
     df_x=pd.concat(arr1+arr2,axis=1).dropna()# nsamples, nfeatures
     return df_x
@@ -106,12 +106,16 @@ def create_memory_sequence_set(xx,yy,time_memory=120):
 ############### TESTING - SPLIT HERE #####################
 import panel as pn
 
-def predict(model, dfx, dfy, xscaler, yscaler):
-    xx,yy=synchronize(create_antecedent_inputs(dfx),dfy)
+def predict(model,dfx,xscaler,yscaler):
+    xx=create_antecedent_inputs(dfx)
     oindex=xx.index
-    xx,yy=xscaler.transform(xx),yscaler.transform(yy)
+    xx=xscaler.transform(xx)
     yyp=model.predict(xx)
     dfp=pd.DataFrame(yscaler.inverse_transform(yyp),index=oindex,columns=['prediction'])
+    return dfp
+
+def predict_with_actual(model, dfx, dfy, xscaler, yscaler):
+    dfp=predict(model, dfx, xscaler, yscaler)
     return pd.concat([dfy,dfp],axis=1).dropna()
     
 def plot(dfy,dfp):
@@ -119,7 +123,7 @@ def plot(dfy,dfp):
 
 def show_performance(model, dfx, dfy, xscaler, yscaler):
     from sklearn.metrics import r2_score
-    dfyp=predict(model,dfx,dfy,xscaler,yscaler)
+    dfyp=predict_with_actual(model,dfx,dfy,xscaler,yscaler)
     print('R^2 ',r2_score(dfyp.iloc[:,0],dfyp.iloc[:,1]))
     dfyp.columns=['target','prediction']
     plt=(dfyp.iloc[:,1]-dfyp.iloc[:,0]).hvplot.kde().opts(width=300)+dfyp.hvplot.points(x='target',y='prediction').opts(width=300)
@@ -157,10 +161,4 @@ def train_more(mlp,xs,ys,df_x,df_y):
     y=np.ravel(ys.transform(df_y))
     mlp.fit(x,y)
     return mlp
-
-def train_and_show(df_x,df_y,hidden_layer_sizes=(10,),max_iter=1000,activation='relu',tol=1e-4):
-    mlp,xs,ys=train(df_x,df_y,hidden_layer_sizes=hidden_layer_sizes,max_iter=max_iter,activation=activation,tol=tol)
-    #display(show(df_x,df_y,mlp,xs,ys))
-    return mlp,xs,ys
-
 

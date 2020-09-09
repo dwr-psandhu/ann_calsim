@@ -2,6 +2,7 @@
 *.csv
 *.doc*
 *.h5
+*.dump
 tf_training_logs/
 __pycache__/
 .ipynb_checkpoints/
