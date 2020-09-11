@@ -3,6 +3,10 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import r2_score
 #
+import tensorflow as tf
+from tensorflow import keras
+import joblib
+#
 import pandas as pd
 import numpy as np
 # viz
@@ -65,19 +69,17 @@ def create_training_sets(dfin, dfout, calib_slice=slice('1940','2015'), valid_sl
     '''
     # create antecedent inputs aligned with outputs for each pair of dfin and dfout
     dfina,dfouta=[],[]
+    # scale across all inputs and outputs
+    xscaler,yscaler=create_xyscaler(dfin,dfout)
     for dfi,dfo in zip(dfin,dfout):
         dfi,dfo=synchronize(dfi,dfo)
+        dfi,dfo=pd.DataFrame(xscaler.transform(dfi),dfi.index,columns=dfi.columns),pd.DataFrame(yscaler.transform(dfo),dfo.index,columns=dfo.columns)
         dfi,dfo=synchronize(create_antecedent_inputs(dfi),dfo)
         dfina.append(dfi)
         dfouta.append(dfo)
-    # scale across all inputs and outputs
-    xscaler,yscaler=create_xyscaler(dfina,dfouta)
     # split in calibration and validation slices
     dfins=[split(dfx,calib_slice,valid_slice) for dfx in dfina]
     dfouts=[split(dfy,calib_slice,valid_slice) for dfy in dfouta]
-    # transform with scaler
-    dfins=[ (xscaler.transform(xc),xscaler.transform(xv)) for xc,xv in dfins]
-    dfouts=[ (yscaler.transform(yc),yscaler.transform(yv)) for yc,yv in dfouts]
     # append all calibration and validation slices across all input/output sets
     xallc,xallv=dfins[0]
     for xc,xv in dfins[1:]:
@@ -107,9 +109,9 @@ def create_memory_sequence_set(xx,yy,time_memory=120):
 import panel as pn
 
 def predict(model,dfx,xscaler,yscaler):
+    dfx=pd.DataFrame(xscaler.transform(dfx),dfx.index,columns=dfx.columns)
     xx=create_antecedent_inputs(dfx)
     oindex=xx.index
-    xx=xscaler.transform(xx)
     yyp=model.predict(xx)
     dfp=pd.DataFrame(yscaler.inverse_transform(yyp),index=oindex,columns=['prediction'])
     return dfp
@@ -128,6 +130,34 @@ def show_performance(model, dfx, dfy, xscaler, yscaler):
     dfyp.columns=['target','prediction']
     plt=(dfyp.iloc[:,1]-dfyp.iloc[:,0]).hvplot.kde().opts(width=300)+dfyp.hvplot.points(x='target',y='prediction').opts(width=300)
     return pn.Column(plt, plot(dfyp.iloc[:,0],dfyp.iloc[:,1]))
+###########
+import joblib
+class ANNModel:
+    '''
+    model consists of the model file + the scaling of inputs and outputs
+    '''
+    def __init__(self,model,xscaler,yscaler):
+        self.model=model
+        self.xscaler=xscaler
+        self.yscaler=yscaler
+    def predict(self, dfin):
+        return predict(self.model,dfin,self.xscaler,self.yscaler)
+#
+def save_model(location, model, xscaler, yscaler):
+    '''
+    save keras model and scaling to files
+    '''
+    joblib.dump((xscaler,yscaler),'%s_EC-xyscaler.dump'%location)
+    model.save('%s_EC_ff_8x2.h5'%location)
+
+def load_model(location):
+    '''
+    load model (ANNModel) which consists of model (Keras) and scalers loaded from two files
+    '''
+    model=keras.models.load_model('%s_EC_ff_8x2.h5'%location)
+    xscaler,yscaler=joblib.load('%s_EC-xyscaler.dump'%location)
+    return ANNModel(model,xscaler,yscaler)
+
 ########### TRAINING - SPLIT THIS MODULE HERE ###################
 
 def train_nn(x,y,hidden_layer_sizes=(10,),max_iter=1000,activation='relu',tol=1e-4):
