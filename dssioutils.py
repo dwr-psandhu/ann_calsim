@@ -9,7 +9,7 @@ def add_pathnames(dssfile, paths):
     '''
     sum = 0
     for path in paths:
-        df = pyhecdss.get_rts(dssfile, path)[0][0]
+        df = list(pyhecdss.get_ts(dssfile, path))[0][0]
         # resample to daily, if daily this is no op
         df = df.resample('D').ffill()
         # then convert to time stamp
