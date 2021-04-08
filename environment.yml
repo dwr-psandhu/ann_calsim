@@ -1,0 +1,29 @@
+name: anntraining
+channels:
+  - pyviz
+  - defaults
+dependencies:
+  #basics
+  - python=3.7
+  - pip=20.0
+  #jupyter
+  - ipykernel
+  - jupyter_client
+  - jupyter
+  # dev
+  - autopep8=1.4
+  # scientific core
+  - pandas
+  # windows io
+  - xlrd >= 1.0.0
+  - openpyxl # xls 
+  # machine learning
+  - statsmodels
+  - tensorflow=2.1
+  - keras
+  - scikit-learn
+  # vizualization
+  - bokeh
+  - hvplot
+  - holoviews
+  - panel
