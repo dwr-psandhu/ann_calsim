@@ -1,5 +1,6 @@
 name: anntraining
 channels:
+  - cadwr-dms
   - pyviz
   - defaults
 dependencies:
@@ -17,6 +18,8 @@ dependencies:
   # windows io
   - xlrd >= 1.0.0
   - openpyxl # xls 
+  # custom
+  - pyhecdss
   # machine learning
   - statsmodels
   - tensorflow=2.1
