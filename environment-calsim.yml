@@ -1,13 +1,16 @@
 name: anntraining
 channels:
+  - cadwr-dms
   - pyviz
   - defaults
   - conda-forge
 dependencies:
   #basics
-  - python
+  - python=3.7
   #jupyter
   - ipykernel
+  - jupyter_client
+  - jupyter
   # dev
   - autopep8
   # scientific core
@@ -15,6 +18,8 @@ dependencies:
   # windows io
   - xlrd >= 1.0.0
   - openpyxl # xls 
+  # custom
+  - pyhecdss
   # machine learning
   - statsmodels
   - tensorflow #=2.1
