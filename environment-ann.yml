@@ -1,0 +1,22 @@
+name: anntraining
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python
+  - pip
+  - ipykernel
+  - tensorflow # [version='>=2.1']
+  - scikit-learn
+  - keras
+  - keras-tuner
+  - pandas
+  - openpyxl
+  - xlrd # [version='>=1.0.0']
+  - statsmodels
+  - bokeh
+  - hvplot
+  - holoviews
+  - panel
+  - autopep8
+prefix: c:\Users\psandhu\Miniconda3\envs\anntraining
