@@ -13,13 +13,13 @@ import numpy as np
 import hvplot.pandas
 import holoviews as hv
 import panel as pn
-def synchronize(dfx,dfy):
+
+def synchronize(dfin, dfout):
     '''
     synchronizes on index dfx and dfy and return tuple of synchronized data frames
-    Note: assumes dfy has only one column
     '''
-    dfsync=pd.concat([dfx,dfy],axis=1).dropna()
-    return dfsync.iloc[:,:-1],dfsync.iloc[:,[-1]]
+    dfsync = pd.concat([dfin,dfout],axis=1).dropna()
+    return dfsync.iloc[:,:len(dfin.columns)], dfsync.iloc[:,len(dfin.columns):]
 
 def create_antecedent_inputs(df,ndays=8,window_size=11,nwindows=10):
     '''
@@ -50,11 +50,14 @@ def split(df, calib_slice, valid_slice):
 
 def create_xyscaler(dfin,dfout):
     xscaler=MinMaxScaler()
-    xx=xscaler.fit_transform(pd.concat(dfin,axis=0))
+    xx=xscaler.fit_transform(dfin)
     #
     yscaler=MinMaxScaler()
-    yy=yscaler.fit_transform(pd.concat(dfout,axis=0))
+    yy=yscaler.fit_transform(dfout)
     return xscaler, yscaler
+
+def _old_create_xyscaler(dfin,dfout):
+    return create_xyscaler(pd.concat(dfin,axis=0), pd.concat(dfout,axis=0))
 
 def create_training_sets(dfin, dfout, calib_slice=slice('1940','2015'), valid_slice=slice('1923','1939')):
     '''
@@ -70,7 +73,7 @@ def create_training_sets(dfin, dfout, calib_slice=slice('1940','2015'), valid_sl
     # create antecedent inputs aligned with outputs for each pair of dfin and dfout
     dfina,dfouta=[],[]
     # scale across all inputs and outputs
-    xscaler,yscaler=create_xyscaler(dfin,dfout)
+    xscaler,yscaler=_old_create_xyscaler(dfin,dfout)
     for dfi,dfo in zip(dfin,dfout):
         dfi,dfo=synchronize(dfi,dfo)
         dfi,dfo=pd.DataFrame(xscaler.transform(dfi),dfi.index,columns=dfi.columns),pd.DataFrame(yscaler.transform(dfo),dfo.index,columns=dfo.columns)
@@ -105,6 +108,7 @@ def create_memory_sequence_set(xx,yy,time_memory=120):
     yyarr=[yy[time_memory+i] for i in range(xx.shape[0]-time_memory)]
     yyarr=np.array(yyarr)[:,0]
     return xxarr,yyarr
+ 
 ############### TESTING - SPLIT HERE #####################
 import panel as pn
 
@@ -136,27 +140,28 @@ class ANNModel:
     '''
     model consists of the model file + the scaling of inputs and outputs
     '''
-    def __init__(self,model,xscaler,yscaler):
+    def __init__(self,model_name, model,xscaler,yscaler):
+        self.model_name = model_name
         self.model=model
         self.xscaler=xscaler
         self.yscaler=yscaler
     def predict(self, dfin):
         return predict(self.model,dfin,self.xscaler,self.yscaler)
 #
-def save_model(location, model, xscaler, yscaler):
+def save_model(model_name, model, xscaler, yscaler):
     '''
     save keras model and scaling to files
     '''
-    joblib.dump((xscaler,yscaler),'%s_EC-xyscaler.dump'%location)
-    model.save('%s_EC_ff_8x2.h5'%location)
+    joblib.dump((xscaler,yscaler),'%s-xyscaler.dump'%model_name)
+    model.save('%s.h5'%model_name)
 
-def load_model(location):
+def load_model(model_name):
     '''
     load model (ANNModel) which consists of model (Keras) and scalers loaded from two files
     '''
-    model=keras.models.load_model('%s_EC_ff_8x2.h5'%location)
-    xscaler,yscaler=joblib.load('%s_EC-xyscaler.dump'%location)
-    return ANNModel(model,xscaler,yscaler)
+    model=keras.models.load_model('%s.h5'%model_name)
+    xscaler,yscaler=joblib.load('%s-xyscaler.dump'%model_name)
+    return ANNModel(model_name, model,xscaler,yscaler)
 
 ########### TRAINING - SPLIT THIS MODULE HERE ###################
 

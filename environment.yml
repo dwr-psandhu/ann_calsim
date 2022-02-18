@@ -1,6 +1,6 @@
 name: anntraining
 channels:
-  - pyviz
+#  - pyviz
   - defaults
   - conda-forge
 dependencies:
@@ -11,9 +11,10 @@ dependencies:
   # dev
   - autopep8
   # scientific core
+  - numpy=1.19.2 # issue with https://github.com/tensorflow/tensorflow/issues/47242
   - pandas
   # windows io
-  - xlrd >= 1.0.0
+  - xlrd # >= 1.0.0
   - openpyxl # xls 
   # machine learning
   - statsmodels
